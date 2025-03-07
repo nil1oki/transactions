@@ -1,0 +1,60 @@
+from web3 import Web3
+import os
+
+# Путь к файлу с приватными ключами
+PRIVATE_KEYS_FILE = "data/private_keys.txt"
+
+# RPC-эндпоинт тестовой сети Monad
+RPC_URL = "https://testnet-rpc.monad.xyz/"
+
+
+def main():
+    # Создаем экземпляр Web3
+    web3 = Web3(Web3.HTTPProvider(RPC_URL))
+
+    # Проверяем соединение с сетью
+    if not web3.is_connected():
+        print("Не удалось подключиться к Monad Testnet. Проверьте RPC-URL.")
+        return
+
+    # Проверяем, существует ли файл с приватными ключами
+    if not os.path.exists(PRIVATE_KEYS_FILE):
+        print(f"Файл с приватными ключами '{PRIVATE_KEYS_FILE}' не найден.")
+        return
+
+    # Считываем все строки (приватные ключи) из файла
+    with open(PRIVATE_KEYS_FILE, "r") as f:
+        lines = f.readlines()
+
+    # Обрабатываем каждую строку с учётом её номера
+    for i, line in enumerate(lines, start=1):
+        pk = line.strip()
+
+        # Пропускаем пустые строки
+        if not pk:
+            continue
+
+        try:
+            # Создаём аккаунт из приватного ключа
+            account = web3.eth.account.from_key(pk)
+            address = account.address
+
+            # Запрашиваем баланс адреса (в wei)
+            balance_wei = web3.eth.get_balance(address)
+
+            # Если баланс > 0, выводим информацию
+            if balance_wei > 0:
+                # Переводим wei -> MON (1 MON = 10^18 wei)
+                balance_mon = web3.from_wei(balance_wei, 'ether')
+
+                print(f"Строка №{i}:")
+                print(f"  Приватный ключ: {pk}")
+                print(f"  Адрес: {address}")
+                print(f"  Баланс: {balance_mon} MON\n")
+
+        except Exception as e:
+            print(f"Ошибка при обработке ключа (строка №{i}, ключ = {pk}): {e}\n")
+
+
+if __name__ == "__main__":
+    main()
